@@ -59,7 +59,7 @@ int main(int argc, char const *argv[])
   int img_height = configuration["ImageProperties"]["height"];
   int img_width = configuration["ImageProperties"]["width"];
 
-  img::EasyImage complete_image = img::EasyImage(img_width, img_height, BACKGROUND_COLOR);
+  // img::EasyImage complete_image = img::EasyImage(img_width, img_height, BACKGROUND_COLOR);
 
   if (configuration["General"]["type"].as_string_or_die() == "IntroColorRectangle")
   {
@@ -71,22 +71,16 @@ int main(int argc, char const *argv[])
   shp::Point point3(15, 7);
   shp::Point point4(28, 2);
   shp::Point point5(25, 5);
-  shp::Point point6(28, 14);
-  shp::Point point7(8, 5);
+  shp::Point point6(29, 14);
+  shp::Point point7(7, 5);
   shp::Point point8(2, 13);
 
   std::vector<shp::Point> points = std::vector<shp::Point>({point1, point2, point3, point4, point5, point6, point7, point8});
 
   std::vector<std::pair<unsigned int, unsigned int>> lines = {{0, 1}, {2, 3}, {4, 5}, {6, 7}};
 
-  // For some reason 0,0,0 and 256,256,256 is the same here ??
-  // Of course, colors work modulo 256. So the color white would be 255
-  // complete_image(0, 0) = img::Color(255, 255, 255);
-
   rndr::Renderer renderer = rndr::Renderer(points, lines, img_width, img_height);
-
-  // TODO DEBUG although the lines are calculated they do not show up on this image :(
-  renderer.render(complete_image, img::Color(178, 0, 0));
+  img::EasyImage complete_image = renderer.render(img_width, BACKGROUND_COLOR, img::Color(178, 0, 0));
 
   save_image(complete_image);
 }

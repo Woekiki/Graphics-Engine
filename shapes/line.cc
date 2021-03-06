@@ -30,30 +30,26 @@ void shp::Line::render(img::EasyImage &image, const img::Color &color)
         return;
     }
 
-    // TODO these 2 ifblocks work, but can be coded into one I think.
-    unsigned int left_x, left_y, right_x, right_y;
+    shp::Point leftPoint, rightPoint;
     if (this->startPoint.get_pixel_x() < this->endPoint.get_pixel_x())
     {
-        left_x = this->startPoint.get_pixel_x();
-        left_y = this->startPoint.get_pixel_y();
-        right_x = this->endPoint.get_pixel_x();
-        right_y = this->endPoint.get_pixel_y();
+        leftPoint = this->startPoint;
+        rightPoint = this->endPoint;
     }
     else
     {
-        left_x = this->endPoint.get_pixel_x();
-        left_y = this->endPoint.get_pixel_y();
-        right_x = this->startPoint.get_pixel_x();
-        right_y = this->startPoint.get_pixel_y();
+        leftPoint = this->endPoint;
+        rightPoint = this->startPoint;
     }
 
-    // std::cout << "Calculating: " << left_x << ", " << left_y << " - " << right_x << ", " << right_y << std::endl;
+    unsigned int left_x = leftPoint.get_pixel_x();
+    unsigned int left_y = leftPoint.get_pixel_y();
+    unsigned int right_x = rightPoint.get_pixel_x();
+    unsigned int right_y = rightPoint.get_pixel_y();
 
     const double top = double(right_y) - double(left_y);
     const double bottom = double(right_x) - double(left_x);
     const double direction_coefficient = top / bottom;
-
-    // std::cout << "RICO: " << direction_coefficient << std::endl;
 
     if ((direction_coefficient <= 1.0 && direction_coefficient > 0.0) || (-1.0 <= direction_coefficient && direction_coefficient < 0.0))
     {
@@ -67,9 +63,6 @@ void shp::Line::render(img::EasyImage &image, const img::Color &color)
     {
         for (unsigned int i = 0; i <= right_y - left_y; i++)
         {
-            // std::cout << round(left_x + i / direction_coefficient) << ", " << left_y + i << std::endl;
-            // std::cout << i / direction_coefficient << std::endl;
-            // std::cout << left_x + i / direction_coefficient << std::endl;
             image(round(left_x + i / direction_coefficient), left_y + i) = color;
         }
         return;
