@@ -28,6 +28,7 @@ namespace shp
         double _alpha;
         double _delta;
         std::map<char, std::string> _replacements;
+        std::vector<std::pair<shp::Point, double>> _stack;
     };
 }
 

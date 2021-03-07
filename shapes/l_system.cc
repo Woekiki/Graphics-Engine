@@ -3,12 +3,12 @@
 #include "math.h"
 #include <iostream>
 
-shp::L_System::L_System() : _alphabet({}), _initiator(""), _alpha(0), _delta(0), _replacements({}) {}
+shp::L_System::L_System() : _alphabet({}), _initiator(""), _alpha(0), _delta(0), _replacements({}), _stack({}) {}
 shp::L_System::L_System(std::set<char> alphabet,
                         std::string initiator,
                         double alpha,
                         double delta,
-                        std::map<char, std::string> replacements) : _alphabet(alphabet), _initiator(initiator), _alpha(alpha), _delta(delta), _replacements(replacements) {}
+                        std::map<char, std::string> replacements) : _alphabet(alphabet), _initiator(initiator), _alpha(alpha), _delta(delta), _replacements(replacements), _stack({}) {}
 
 std::string shp::L_System::_generate_string(unsigned int n)
 {
@@ -35,7 +35,6 @@ std::string shp::L_System::_generate_string(unsigned int n)
 std::pair<std::vector<shp::Point>, std::vector<std::pair<unsigned int, unsigned int>>> shp::L_System::generate(unsigned int n)
 {
     std::string full_string = _generate_string(n);
-    //std::cout << "Full string: " << full_string << std::endl;
 
     shp::Point current_point = shp::Point(0.0, 0.0);
     std::vector<shp::Point> points = std::vector<shp::Point>({current_point});
@@ -44,49 +43,55 @@ std::pair<std::vector<shp::Point>, std::vector<std::pair<unsigned int, unsigned 
 
     for (char current_char : full_string)
     {
-        if (current_char == '+')
+        if (current_char == '[')
         {
-            current_alpha = current_alpha + _delta;
-            while (current_alpha > M_PI * 2.0)
-            {
-                current_alpha -= M_PI * 2.0;
-            }
+            _stack.push_back({current_point, current_alpha});
         }
         else
         {
-            if (current_char == '-')
+            if (current_char == ']')
             {
-                current_alpha = current_alpha - _delta;
-                while (current_alpha < 0)
-                {
-                    current_alpha += M_PI * 2.0;
-                }
+                std::pair<shp::Point, double> result = _stack.back();
+                _stack.pop_back();
+                current_point = result.first;
+                current_alpha = result.second;
             }
             else
             {
-                // It is a move string
-                shp::Point new_point = Point(current_point.get_x() + cos(current_alpha), current_point.get_y() + sin(current_alpha));
-                points.push_back(new_point);
-                current_point = new_point;
-                // It is a 1 string
-                if (_alphabet.find(current_char) != _alphabet.end())
+                if (current_char == '+')
                 {
-                    lines.push_back({points.size() - 2, points.size() - 1});
+                    current_alpha = current_alpha + _delta;
+                    while (current_alpha > M_PI * 2.0)
+                    {
+                        current_alpha -= M_PI * 2.0;
+                    }
+                }
+                else
+                {
+                    if (current_char == '-')
+                    {
+                        current_alpha = current_alpha - _delta;
+                        while (current_alpha < 0)
+                        {
+                            current_alpha += M_PI * 2.0;
+                        }
+                    }
+                    else
+                    {
+                        // It is a move string
+                        shp::Point new_point = Point(current_point.get_x() + cos(current_alpha), current_point.get_y() + sin(current_alpha));
+                        points.push_back(new_point);
+                        current_point = new_point;
+                        // It is a 1 string
+                        if (_alphabet.find(current_char) != _alphabet.end())
+                        {
+                            lines.push_back({points.size() - 2, points.size() - 1});
+                        }
+                    }
                 }
             }
         }
     }
-
-    // Printing
-    // for (shp::Point point : points)
-    // {
-    //     std::cout << "Point: " << point.get_x() << ", " << point.get_y() << std::endl;
-    // }
-
-    // for (std::pair<unsigned int, unsigned int> line : lines)
-    // {
-    //     std::cout << "Line: " << line.first << ", " << line.second << std::endl;
-    // }
 
     return {points, lines};
 }
