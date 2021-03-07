@@ -3,6 +3,8 @@
 
 rndr::Renderer::Renderer(){};
 
+rndr::Renderer::Renderer(std::vector<shp::Point> points, std::vector<std::pair<unsigned int, unsigned int>> lines) : _points(points), _lines(lines), _width(0), _height(0){};
+
 rndr::Renderer::Renderer(std::vector<shp::Point> points,
                          std::vector<std::pair<unsigned int, unsigned int>> lines,
                          unsigned int width,
@@ -32,13 +34,13 @@ void rndr::Renderer::render(img::EasyImage &image, const img::Color &color)
 
 void rndr::Renderer::scale(unsigned int size)
 {
-    unsigned int x_min = INT16_MAX;
-    unsigned int y_min = INT16_MAX;
-    unsigned int x_max = 0;
-    unsigned int y_max = 0;
+    double x_min = INT16_MAX;
+    double y_min = INT16_MAX;
+    double x_max = 0;
+    double y_max = 0;
     for (shp::Point point : _points)
     {
-        unsigned int current_x = point.get_pixel_x();
+        double current_x = point.get_x();
         if (current_x > x_max)
         {
             x_max = current_x;
@@ -47,7 +49,7 @@ void rndr::Renderer::scale(unsigned int size)
         {
             x_min = current_x;
         }
-        unsigned int current_y = point.get_pixel_y();
+        double current_y = point.get_y();
         if (current_y > y_max)
         {
             y_max = current_y;
@@ -58,8 +60,8 @@ void rndr::Renderer::scale(unsigned int size)
         }
     }
 
-    unsigned int x_range = x_max - x_min;
-    unsigned int y_range = y_max - y_min;
+    double x_range = x_max - x_min;
+    double y_range = y_max - y_min;
     double bottom = std::max(x_range, y_range);
 
     _width = size * double(x_range / bottom);
@@ -76,6 +78,8 @@ void rndr::Renderer::scale(unsigned int size)
 
         double moved_x = scaled_x + (_width / 2.0 - center_data_x);
         double moved_y = scaled_y + (_height / 2.0 - center_data_y);
+
+        // std::cout << "Scaled point: " << moved_x << ", " << moved_y << std::endl;
 
         point.set_x(moved_x);
         point.set_y(moved_y);

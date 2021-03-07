@@ -11,6 +11,7 @@ namespace rndr
     {
     public:
         Renderer();
+        Renderer(std::vector<shp::Point> points, std::vector<std::pair<unsigned int, unsigned int>> lines);
         Renderer(std::vector<shp::Point> points, std::vector<std::pair<unsigned int, unsigned int>> lines, unsigned int width, unsigned int height);
 
         void scale(unsigned int size);
