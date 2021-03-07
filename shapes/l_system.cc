@@ -35,7 +35,7 @@ std::string shp::L_System::_generate_string(unsigned int n)
 std::pair<std::vector<shp::Point>, std::vector<std::pair<unsigned int, unsigned int>>> shp::L_System::generate(unsigned int n)
 {
     std::string full_string = _generate_string(n);
-    std::cout << "Full string: " << full_string << std::endl;
+    //std::cout << "Full string: " << full_string << std::endl;
 
     shp::Point current_point = shp::Point(0.0, 0.0);
     std::vector<shp::Point> points = std::vector<shp::Point>({current_point});
