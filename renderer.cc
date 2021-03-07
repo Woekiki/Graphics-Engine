@@ -1,5 +1,6 @@
 #include "renderer.h"
 #include "shapes/line.h"
+#include "shapes/point.h"
 
 rndr::Renderer::Renderer(){};
 
@@ -11,13 +12,29 @@ rndr::Renderer::Renderer(std::vector<shp::Point> points,
                          unsigned int height)
     : _points(points), _lines(lines), _width(width), _height(height){};
 
-img::EasyImage rndr::Renderer::render(unsigned int size, const ::img::Color &background_color, const img::Color &color)
+img::EasyImage rndr::Renderer::render_2D(unsigned int size, const ::img::Color &background_color, const img::Color &color)
 {
     this->scale(size);
     img::EasyImage image(_width, _height, background_color);
     this->render(image, color);
     std::cout << "Rendered image " << image.get_width() << ", " << image.get_height() << std::endl;
     return image;
+}
+
+img::EasyImage rndr::Renderer::render_3D(unsigned int size, const ::img::Color &background_color, const img::Color &color, shp::PolarPoint eye)
+{
+    project(eye);
+    img::EasyImage image = render_2D(size, background_color, color);
+    return image;
+}
+
+void rndr::Renderer::project(shp::PolarPoint eye)
+{
+    for (shp::Point &_point : _points)
+    {
+        _point.transform_to_eye_coordinate(eye);
+        _point = _point.project();
+    }
 }
 
 void rndr::Renderer::render(img::EasyImage &image, const img::Color &color)
@@ -65,7 +82,7 @@ void rndr::Renderer::scale(unsigned int size)
     double bottom = std::max(x_range, y_range);
 
     _width = size * double(x_range / bottom);
-    _height = 1 + size * double(y_range / bottom);
+    _height = size * double(y_range / bottom); // 1 + might be necessary here but seems wrong, it is only necessary when working with extremely small resolutions
 
     double scale_factor = MARGIN * _width / x_range;
     for (shp::Point &point : _points)

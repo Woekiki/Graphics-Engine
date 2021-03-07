@@ -2,6 +2,7 @@
 #define RENDERER_H
 
 #include "shapes/point.h"
+#include "shapes/polar_point.h"
 #include <vector>
 #include "EasyImage.h"
 
@@ -15,8 +16,10 @@ namespace rndr
         Renderer(std::vector<shp::Point> points, std::vector<std::pair<unsigned int, unsigned int>> lines, unsigned int width, unsigned int height);
 
         void scale(unsigned int size);
+        void project(shp::PolarPoint eye);
         void render(img::EasyImage &image, const img::Color &color);
-        img::EasyImage render(unsigned int size, const ::img::Color &background_color, const img::Color &color);
+        img::EasyImage render_2D(unsigned int size, const ::img::Color &background_color, const img::Color &color);
+        img::EasyImage render_3D(unsigned int size, const ::img::Color &background_color, const img::Color &color, shp::PolarPoint eye);
 
     private:
         std::vector<shp::Point> _points;
