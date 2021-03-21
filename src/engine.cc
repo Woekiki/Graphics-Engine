@@ -50,6 +50,67 @@ void parse_configuration(ini::Configuration &configuration, std::string filename
   return;
 }
 
+std::vector<std::pair<unsigned int, unsigned int>> generate_lines_from_faces(std::vector<std::vector<unsigned int>> faces)
+{
+  std::vector<std::pair<unsigned int, unsigned int>> lines;
+  for (std::vector<unsigned int> face : faces)
+  {
+    for (unsigned int i = 0; i < face.size() - 1; i++)
+    {
+      lines.push_back({face[i] - 1, face[i + 1] - 1});
+    }
+    lines.push_back({face[face.size() - 1] - 1, face[0] - 1});
+  }
+  return lines;
+}
+
+std::pair<std::vector<shp::Point>, std::vector<std::vector<unsigned int>>> split_triangles(std::vector<shp::Point> input_points, std::vector<std::vector<unsigned int>> input_faces)
+{
+  std::vector<shp::Point> points;
+  std::vector<std::vector<unsigned int>> faces;
+
+  // TODO Optimalisation possible if we check if the newly generated points already exist.
+  for (std::vector<unsigned int> face : input_faces)
+  {
+    shp::Point a = input_points[face[0] - 1];
+    shp::Point b = input_points[face[1] - 1];
+    shp::Point c = input_points[face[2] - 1];
+
+    // TODO Use operator overloading to sum points and divide by a constant.
+    shp::Point d = shp::Point((a.get_x() + b.get_x()) / 2.0, (a.get_y() + b.get_y()) / 2.0, (a.get_z() + b.get_z()) / 2.0);
+    shp::Point e = shp::Point((a.get_x() + c.get_x()) / 2.0, (a.get_y() + c.get_y()) / 2.0, (a.get_z() + c.get_z()) / 2.0);
+    shp::Point f = shp::Point((b.get_x() + c.get_x()) / 2.0, (b.get_y() + c.get_y()) / 2.0, (b.get_z() + c.get_z()) / 2.0);
+
+    unsigned int current_index = points.size() + 1;
+
+    points.push_back(a);
+    points.push_back(b);
+    points.push_back(c);
+    points.push_back(d);
+    points.push_back(e);
+    points.push_back(f);
+
+    faces.push_back({current_index, current_index + 3, current_index + 4});
+    faces.push_back({current_index + 1, current_index + 5, current_index + 3});
+    faces.push_back({current_index + 2, current_index + 4, current_index + 5});
+    faces.push_back({current_index + 3, current_index + 5, current_index + 4});
+  }
+
+  return {points, faces};
+}
+
+std::vector<shp::Point> rescale_sphere(std::vector<shp::Point> input_points)
+{
+  std::vector<shp::Point> points(input_points.size(), shp::Point());
+  for (unsigned int i = 0; i < input_points.size(); i++)
+  {
+    shp::Point orig_point = input_points[i];
+    double divider = sqrt(pow(orig_point.get_x(), 2) + pow(orig_point.get_y(), 2) + pow(orig_point.get_z(), 2));
+    points[i] = shp::Point(orig_point.get_x() / divider, orig_point.get_y() / divider, orig_point.get_z() / divider);
+  }
+  return points;
+}
+
 img::EasyImage render_l_system(ini::Configuration &configuration)
 {
   int size = configuration["ImageProperties"]["size"].as_int_or_die();
@@ -114,33 +175,114 @@ img::EasyImage render_wireframe(ini::Configuration &configuration)
 {
   int size = configuration["ImageProperties"]["size"].as_int_or_die();
   std::string type = configuration["ImageProperties"]["type"].as_string_or_die();
+  std::vector<shp::Point> _points;
+  std::vector<std::vector<unsigned int>> _faces = {};
   if (type == "Cube")
   {
-    std::vector<shp::Point> _points = {shp::Point(1, -1, -1), shp::Point(-1, 1, -1), shp::Point(1, 1, 1), shp::Point(-1, -1, 1), shp::Point(1, 1, -1), shp::Point(-1, -1, -1), shp::Point(1, -1, 1), shp::Point(-1, 1, 1)};
-    std::vector<std::vector<unsigned int>> _faces = {{1, 5, 3, 7}, {5, 2, 8, 3}, {2, 6, 4, 8}, {6, 1, 7, 4}, {7, 3, 8, 4}, {1, 6, 2, 5}};
-    std::vector<std::pair<unsigned int, unsigned int>> _lines = {};
-    for (std::vector<unsigned int> face : _faces)
-    {
-      for (unsigned int i = 0; i < face.size() - 1; i++)
-      {
-        _lines.push_back({face[i] - 1, face[i + 1] - 1});
-      }
-      _lines.push_back({face[face.size() - 1] - 1, face[0] - 1});
-    }
-
-    // TODO Provide eye coordinates in polar, remove the conversion to polar in the function and make that conversion explicit here.
-    // Providing it in polar would make it extremely easy to make a moving camera eye.
-
-    rndr::Renderer renderer = rndr::Renderer(_points, _lines);
-
-    double r = configuration["Eye"]["r"].as_double_or_die();
-    double theta = degrees_to_radians(configuration["Eye"]["theta"].as_double_or_die());
-    double phi = degrees_to_radians(configuration["Eye"]["phi"].as_double_or_die());
-
-    shp::PolarPoint eye = shp::PolarPoint(r, phi, theta);
-    img::EasyImage image = renderer.render_3D(size, img::Color(173, 216, 230), img::Color(34, 0, 34), eye);
-    return image;
+    _points = {shp::Point(1, -1, -1), shp::Point(-1, 1, -1), shp::Point(1, 1, 1), shp::Point(-1, -1, 1), shp::Point(1, 1, -1), shp::Point(-1, -1, -1), shp::Point(1, -1, 1), shp::Point(-1, 1, 1)};
+    _faces = {{1, 5, 3, 7}, {5, 2, 8, 3}, {2, 6, 4, 8}, {6, 1, 7, 4}, {7, 3, 8, 4}, {1, 6, 2, 5}};
   }
+  else
+  {
+    if (type == "Tetrahedron")
+    {
+      _points = {shp::Point(1, -1, -1), shp::Point(-1, 1, -1), shp::Point(1, 1, 1), shp::Point(-1, -1, 1), shp::Point(1, 1, -1), shp::Point(-1, -1, -1), shp::Point(1, -1, 1), shp::Point(-1, 1, 1)};
+      _faces = {{1, 2, 3}, {2, 4, 3}, {1, 4, 2}, {1, 3, 4}};
+    }
+    else
+    {
+      if (type == "Octahedron")
+      {
+        _points = {shp::Point(1, 0, 0), shp::Point(0, 1, 0), shp::Point(-1, 0, 0), shp::Point(0, -1, 0), shp::Point(0, 0, -1), shp::Point(0, 0, 1)};
+        _faces = {{1, 2, 6}, {2, 3, 6}, {3, 4, 6}, {4, 1, 6}, {2, 1, 5}, {3, 2, 5}, {4, 3, 5}, {1, 4, 5}};
+      }
+      else
+      {
+        if (type == "Icosahedron" || type == "Dodecahedron" || type == "Sphere")
+        {
+          _points = {shp::Point(0, 0, sqrt(5) / 2.0)};
+          for (unsigned int i = 2; i < 7; i++)
+          {
+            _points.push_back(shp::Point(cos((i - 2) * 2 * (M_PI / 5.0)), sin((i - 2) * 2 * (M_PI / 5.0)), 0.5));
+          }
+          for (unsigned int i = 7; i < 12; i++)
+          {
+            _points.push_back(shp::Point(cos(M_PI / 5.0 + (i - 7) * 2 * M_PI / 5.0), sin(M_PI / 5.0 + (i - 7) * 2 * M_PI / 5.0), -0.5));
+          }
+          _points.push_back(shp::Point(0, 0, -sqrt(5) / 2.0));
+
+          _faces = {{1, 2, 3},
+                    {1, 3, 4},
+                    {1, 4, 5},
+                    {1, 5, 6},
+                    {1, 6, 2},
+                    {2, 7, 3},
+                    {3, 7, 8},
+                    {3, 8, 4},
+                    {4, 8, 9},
+                    {4, 9, 5},
+                    {5, 9, 10},
+                    {5, 10, 6},
+                    {6, 10, 11},
+                    {6, 11, 2},
+                    {2, 11, 7},
+                    {12, 8, 7},
+                    {12, 9, 8},
+                    {12, 10, 9},
+                    {12, 11, 10},
+                    {12, 7, 11}};
+          if (type == "Sphere")
+          {
+            unsigned int n = configuration["ImageProperties"]["n"].as_int_or_die();
+
+            for (unsigned int i = 0; i < n; i++)
+            {
+              std::pair<std::vector<shp::Point>, std::vector<std::vector<unsigned int>>> split_result = split_triangles(_points, _faces);
+              _points = split_result.first;
+              _faces = split_result.second;
+            }
+            _points = rescale_sphere(_points);
+          }
+          else
+          {
+            if (type == "Dodecahedron")
+            {
+              std::vector<shp::Point> icosahedron_points = _points;
+              _points.clear();
+
+              for (std::vector<unsigned int> face : _faces)
+              {
+                double x = 0;
+                double y = 0;
+                double z = 0;
+                for (unsigned int triangle_point_index : face)
+                {
+                  x += icosahedron_points[triangle_point_index - 1].get_x();
+                  y += icosahedron_points[triangle_point_index - 1].get_y();
+                  z += icosahedron_points[triangle_point_index - 1].get_z();
+                }
+                x /= face.size();
+                y /= face.size();
+                z /= face.size();
+                _points.push_back(shp::Point(x, y, z));
+              }
+              _faces = std::vector<std::vector<unsigned int>>({{1, 2, 3, 4, 5}, {1, 6, 7, 8, 2}, {2, 8, 9, 10, 3}, {3, 10, 11, 12, 4}, {4, 12, 13, 14, 5}, {5, 14, 15, 6, 1}, {20, 19, 18, 17, 16}, {20, 15, 14, 13, 19}, {19, 13, 12, 11, 18}, {18, 11, 10, 9, 17}, {17, 9, 8, 7, 16}, {16, 7, 6, 15, 20}});
+            }
+          }
+        }
+      }
+    }
+  }
+  std::vector<std::pair<unsigned int, unsigned int>> _lines = generate_lines_from_faces(_faces);
+  rndr::Renderer renderer = rndr::Renderer(_points, _lines);
+
+  double r = configuration["Eye"]["r"].as_double_or_die();
+  double theta = degrees_to_radians(configuration["Eye"]["theta"].as_double_or_die());
+  double phi = degrees_to_radians(configuration["Eye"]["phi"].as_double_or_die());
+
+  shp::PolarPoint eye = shp::PolarPoint(r, phi, theta);
+  img::EasyImage image = renderer.render_3D(size, img::Color(173, 216, 230), img::Color(34, 0, 34), eye);
+  return image;
 }
 
 void save_image(const img::EasyImage &image)
@@ -160,8 +302,6 @@ int main(int argc, char const *argv[])
   ini::Configuration configuration;
 
   parse_configuration(configuration, argv[1]);
-
-  // img::EasyImage complete_image = img::EasyImage(img_width, img_height, BACKGROUND_COLOR);
 
   if (configuration["General"]["type"].as_string_or_die() == "IntroColorRectangle")
   {
